@@ -1,0 +1,10 @@
+* {
+    font-size: 16pt;    
+}
+
+body {
+    margin: 0;
+    background: #fff;
+    overflow: hidden;
+    height: 100vh;
+}

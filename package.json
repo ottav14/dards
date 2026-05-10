@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/pg": "^8.20.0",
+    "bcrypt": "^6.0.0",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.20.0"
+  }
+}
