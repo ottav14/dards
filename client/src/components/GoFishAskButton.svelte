@@ -1,11 +1,21 @@
 <script lang="ts">
 
-    export let uuid: string;
+    export let sessionID: string;
     export let ws: WebSocket;
     export let playerName: string;
+    export let canAsk: boolean;
+    export let hand: string[];
 
     let open = false;
     const cardValues = [ 'A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K' ];
+
+    const hasValue = (value: string) => {
+        for(const card of hand) {
+            if(card[0] === value)
+                return true;
+        }
+        return false;
+    }
 
     const ask = (val: string) => {
         open = false;
@@ -13,29 +23,32 @@
             type: 'go_fish_ask',
             val: val,
             askName: playerName,
-            uuid: uuid
+            sessionID: sessionID
         }));
     }
 </script>
 
 <div class="askButtonContainer">
     <button 
-         class="askButton"
-         on:click={() => {
-             open = !open;
-         }}
+        disabled={!canAsk}
+        class="askButton"
+        on:click={() => {
+            open = !open;
+        }}
      >
         Ask
     </button>
     {#if open}
         <div class="menu">
             {#each cardValues as val}
-                <button
-                    class="cardButton"
-                    on:click={() => ask(val)}
-                >
-                    {val}
-                </button>
+                {#if hasValue(val)}
+                    <button
+                        class="cardButton"
+                        on:click={() => ask(val)}
+                    >
+                        {val}
+                    </button>
+                {/if}
             {/each}
         </div>
     {/if}

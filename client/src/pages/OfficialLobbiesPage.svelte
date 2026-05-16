@@ -1,17 +1,18 @@
 <script lang="ts">
 
     export let ws: WebSocket;
-    export let uuid: string;
+    export let sessionID: string;
     export let lobbyPlayerCounts: number[];
 
     const crazyEightsLobbyCount = 5;
     const goFishLobbyCount = 5;
+    const texasHoldemLobbyCount = 5;
 
     const joinLobby = (lobbyNumber: number) => {
         ws.send(JSON.stringify({
             type: 'join_lobby',
             lobbyNumber: lobbyNumber,
-            uuid: uuid
+            sessionID: sessionID
         }));
     }
 </script>
@@ -34,6 +35,15 @@
                 <span>Lobby {i+crazyEightsLobbyCount+1}</span>
                 <span>Go Fish</span>
                 <span>{lobbyPlayerCounts[crazyEightsLobbyCount+i]}/10</span>
+            </button>
+        {/each}
+        {#each Array(texasHoldemLobbyCount) as _, i}
+            <button
+                on:click={() => joinLobby(i+crazyEightsLobbyCount+goFishLobbyCount+1)}
+            >
+                <span>Lobby {i+crazyEightsLobbyCount+goFishLobbyCount+1}</span>
+                <span>Texas Hold'em</span>
+                <span>{lobbyPlayerCounts[crazyEightsLobbyCount+goFishLobbyCount+i]}/10</span>
             </button>
         {/each}
     </div>

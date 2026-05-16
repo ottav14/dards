@@ -3,18 +3,21 @@
     import GoFishAskButton from '../components/GoFishAskButton.svelte';
 
     export let ws: WebSocket;
-    export let uuid: string;
+    export let sessionID: string;
     export let username: string;
     export let lobbyData: any[];
     export let playing: boolean;
     export let hand: string[];
     export let currentTurnName: string;
-    export let topCard: string;
     export let books: string[];
+    export let gameDisplayText: string;
+    export let canDraw: boolean;
+    export let canAsk: boolean;
 
     const suits = [ 'C', 'D', 'H', 'S' ];
 
-    let overlapRate = 1;
+    let opponentOverlapRate = 1;
+    let playerOverlapRate = 0.08;
     let opponentData: any[];
     let isYourTurn = false;
 
@@ -45,7 +48,7 @@
         ws.send(JSON.stringify({
             type: 'book',
             book: book,
-            uuid: uuid
+            sessionID: sessionID
         }));
     }
 
@@ -76,7 +79,7 @@
     const drawCard = () => {
         ws.send(JSON.stringify({
             type: 'draw_card',
-            uuid: uuid 
+            sessionID: sessionID
         }));
     }
 </script>
@@ -86,10 +89,10 @@
         {#each opponentData as data}
             <div class="opponentContainer">
                 <div class="opponentHand">
-                    {#each Array(data.hand.length)}
+                    {#each Array(data.handSize)}
                         <Card 
                             type="2B" 
-                            overlap={(opponentData.length-1)*overlapRate}
+                            overlap={(opponentData.length-1)*opponentOverlapRate}
                         />
                     {/each}
                 </div>
@@ -97,8 +100,10 @@
                     {data.username}
                 </span>
                 <GoFishAskButton 
-                    {uuid}
+                    {sessionID}
                     {ws}
+                    {canAsk}
+                    {hand}
                     playerName={data.username}
                 />
             </div>
@@ -110,24 +115,40 @@
                  type="2B" 
              />
             <button 
+                disabled={!canDraw}
                 class="drawButton"
                 on:click={drawCard}
             >
                 Draw
             </button>
         </div>
-        <Card type={topCard} />
+        <div class="bookContainer">
+            {#each books as bookValue}
+                <div class="book">
+                    {#each suits as suit}
+                        <Card 
+                             type={`${bookValue}${suit}`} 
+                             overlap={3}
+                         />
+                    {/each}
+                </div>
+            {/each}
+        </div>
     </div>
     <div class="bottomContainer">
         {#if playing}
             <div class="playerContainer">
+                <span class="gameDisplayText">
+                    {gameDisplayText}
+                </span>
                 <div class="handContainer">
                     {#each hand as type}
                         <Card 
                             type={type} 
-                            playable={isYourTurn}
+                            playable={true}
                             selected={selectedRecord[type]}
                             onClick={() => selectCard(type)}
+                            overlap={(hand.length-1)*playerOverlapRate}
                         />
                     {/each}
                 </div>
@@ -139,13 +160,6 @@
                         It's {currentTurnName}'s turn.
                     {/if}
                 </p>
-            </div>
-            <div class="bookContainer">
-                {#each books as bookValue}
-                    {#each suits as suit}
-                        <Card type={`${bookValue}${suit}`} />
-                    {/each}
-                {/each}
             </div>
         {:else}
             <p class="infoDisplay">
@@ -164,6 +178,12 @@
         height: 100vh;
     }
 
+    .playerContainer {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+    }
+
     .infoDisplay {
         padding-bottom: 2rem;
         text-align: center;
@@ -171,21 +191,17 @@
     }
 
     .drawContainer {
+        top: calc(50vh);
+        left: calc(50vw);
+        transform: translate(-50%, -50%);
         position: absolute;
         display: flex;
         flex-direction: column;
         align-items: center;
-        right: 100%;
     }
 
     .drawButton {
         width: 5rem;
-    }
-
-    .playArea {
-        display: flex;
-        align-items: flex-start;
-        position: relative;
     }
 
     .opponentContainer {
@@ -213,8 +229,21 @@
 
     .handContainer {
         display: flex;
-        position: relative;
         width: 100%;
         justify-content: center;
+        padding-top: 2rem;
+    }
+
+    .bookContainer {
+        position: absolute;
+        top: calc(50vw - 50%);
+        right: 10rem;
+        display: flex;
+    }
+
+    .book {
+        display: flex;
+        flex-direction: column;
+        margin-left: 5rem;
     }
 </style>

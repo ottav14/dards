@@ -2,7 +2,7 @@
     import Card from '../components/Card.svelte';
 
     export let ws: WebSocket;
-    export let uuid: string;
+    export let sessionID: string;
     export let username: string;
     export let lobbyData: any[];
     export let playing: boolean;
@@ -11,6 +11,16 @@
     export let topCard;
 
     let overlapRate = 1;
+    let crazy8: string | null = null;
+    let pickSuitContainer: HTMLDivElement;
+
+    const suits = [ 'C', 'D', 'H', 'S' ];
+    const suitWords: Record<string, string> = {
+        'C': 'Clubs',
+        'D': 'Diamonds',
+        'H': 'Hearts',
+        'S': 'Spades',
+    };
 
     let opponentData: any[];
     $: {
@@ -18,17 +28,42 @@
     }
 
     const playCard = (cardType: string) => {
+        if(cardType[0] === '8' && (topCard[0] === cardType[0] || topCard[1] === cardType[1])) {
+            crazy8 = cardType;
+            window.addEventListener('mousedown', (e: MouseEvent) => {
+                const target = e.target as Node;
+                if(!pickSuitContainer.contains(target))
+                    crazy8 = null;
+            });
+        }
+        else {
+            ws.send(JSON.stringify({
+                type: 'play_card',
+                card: cardType,
+                sessionID: sessionID 
+            }));
+        }
+    }
+
+    const playEight = (card: string | null, suit: string) => {
         ws.send(JSON.stringify({
             type: 'play_card',
-            card: cardType,
-            uuid: uuid
+            card: card,
+            crazy8: suit,
+            sessionID: sessionID 
         }));
+        crazy8 = null;
+        window.removeEventListener('mousedown', (e: MouseEvent) => {
+            const target = e.target as Node;
+            if(!pickSuitContainer.contains(target))
+                crazy8 = null;
+        });
     }
 
     const drawCard = () => {
         ws.send(JSON.stringify({
             type: 'draw_card',
-            uuid: uuid 
+            sessionID: sessionID 
         }));
     }
 </script>
@@ -38,7 +73,7 @@
         {#each opponentData as data}
             <div class="opponentContainer">
                 <div class="opponentHand">
-                    {#each Array(data.hand.length)}
+                    {#each Array(data.handSize)}
                         <Card 
                             type="2B" 
                             overlap={(opponentData.length-1)*overlapRate}
@@ -67,6 +102,18 @@
     </div>
     <div class="bottomContainer">
         {#if playing}
+            {#if crazy8}
+                <div class="pickSuitContainer" bind:this={pickSuitContainer}>
+                    {#each suits as suit}
+                        <button 
+                             class="pickSuitButton"
+                             on:click={() => playEight(crazy8, suit)}
+                        >
+                            {suitWords[suit]}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
             <div class="handContainer">
                 {#each hand as type}
                     <Card 
@@ -153,5 +200,15 @@
         position: relative;
         width: 100%;
         justify-content: center;
+    }
+
+    .pickSuitContainer {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .pickSuitButton {
+        padding: 1rem;
     }
 </style>

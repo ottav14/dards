@@ -4,7 +4,6 @@
     export let onClick: () => void = () => {};
     export let overlap: number = 0;
     export let selected = false;
-
 </script>
 
 <button

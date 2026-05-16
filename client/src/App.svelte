@@ -1,6 +1,7 @@
 <script lang="ts">
     import CrazyEightsPage from './pages/CrazyEightsPage.svelte';
     import GoFishPage from './pages/GoFishPage.svelte';
+    import TexasHoldemPage from './pages/TexasHoldemPage.svelte';
     import LoginPage from './pages/LoginPage.svelte';
     import LobbyPage from './pages/LobbyPage.svelte';
     import MainMenuPage from './pages/MainMenuPage.svelte';
@@ -13,27 +14,60 @@
     let playing = false;
     let loginedIn = false;
     let hand: string[] = [];
+    let money: number = 0;
+    let pot: number = 0;
     let currentTurnName: string = '';
     let topCard = '';
     let page = 'login';
     let lobbyPlayerCounts: number[];
     let loginErrorMessage = '';
+    let gameDisplayText = '';
     let gameEndReason = '';
     let gameEndUser = '';
     let books: string[] = [];
+    let canDraw = false;
+    let canAsk = true;
+    let smallBlind = false;
+    let bigBlind = false;
 
     const ws = new WebSocket("ws://localhost:5173/ws");
-    let uuid: string = '';
+    let sessionID: string = '';
     let username: string = '';
     let lobbyData: any[];
+
+    const rankWords: Record<string, string> = {
+        'A': 'aces',
+        '2': 'twos',
+        '3': 'threes',
+        '4': 'fours',
+        '5': 'fives',
+        '6': 'sixes',
+        '7': 'sevens',
+        '8': 'eights',
+        '9': 'nines',
+        'T': 'tens',
+        'J': 'jacks',
+        'Q': 'queens',
+        'K': 'kings',
+    };
+
+    const sortHand = (hand: string[]) => {
+        hand.sort();
+        for(let i = 0; i < hand.length; i++) {
+            if(hand[i][0] === 'A') {
+                const temp = hand[i];
+                hand.splice(i, 1);
+                hand.unshift(temp);
+            }
+        }
+    }
 
     ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
 
         switch(msg.type) {
             case 'logged_in':
-                console.log('logged in');
-                uuid = msg.uuid;
+                sessionID = msg.sessionID;
                 username = msg.username;
                 loginedIn = true;
                 page = 'main_menu';
@@ -53,12 +87,13 @@
             case 'lobby_joined':
                 page = 'lobby';
                 break;
+            case 'lobby_left':
+                page = 'main_menu';
+                break;
             case 'lobby_player_counts':
                 lobbyPlayerCounts = msg.counts;
-                console.log(lobbyPlayerCounts);
                 break;
             case 'lobby_data':
-                console.log(msg.data);
                 lobbyData = msg.data;
                 break;
             case 'game_start':
@@ -77,7 +112,10 @@
                 page = 'game_end';
                 break;
             case 'new_turn':
+                gameDisplayText = '';
                 currentTurnName = msg.username;
+                canDraw = false;
+                canAsk = currentTurnName === username;
                 break;
             case 'player_count':
                 playerCount = msg.count;
@@ -86,21 +124,38 @@
                 topCard = msg.card;
                 break;
             case 'remove_card':
-                for(let i = 0; i < hand.length; i++) {
-                    if(hand[i] === msg.card) {
-                        hand = hand.filter((_, j) => j != i);
-                        break;
-                    }
-                }
+                hand = hand.filter(c => c !== msg.card);
                 break;
             case 'add_card':
                 hand = [...hand, msg.card];
+                sortHand(hand);
                 break;
             case 'remove_card':
                 hand = hand.filter(c => c !== msg.card);
                 break;
             case 'add_book':
-                books.push(msg.value);
+                books = [...books, msg.value];
+                break;
+            case 'go_fish_fail':
+                gameDisplayText = `${msg.username} had no ${rankWords[msg.value]}. Go fish.`;
+                canAsk = false;
+                canDraw = true;
+                break;
+            case 'go_fish_succeed':
+                gameDisplayText = `${msg.username} had ${msg.count} ${rankWords[msg.value]}.`;
+                console.log(gameDisplayText);
+                break;
+            case 'add_money':
+                money += msg.amount;
+                break;
+            case 'pot':
+                pot = msg.amount;
+                break;
+            case 'small_blind':
+                smallBlind = true;
+                break;
+            case 'big_blind':
+                bigBlind = true;
                 break;
         }
     };
@@ -118,20 +173,20 @@
 {:else if page === 'official_lobbies'}
     <OfficialLobbiesPage 
         {ws}
-        {uuid}
+        {sessionID}
         {lobbyPlayerCounts}
     />
 {:else if page === 'lobby'}
     <LobbyPage 
         {ws}
-        {uuid}
+        {sessionID}
         {username}
         {lobbyData}
     />
 {:else if page === 'crazy_eights'}
     <CrazyEightsPage
         {ws} 
-        {uuid}
+        {sessionID}
         {username}
         {lobbyData}
         {playing}
@@ -142,14 +197,30 @@
 {:else if page === 'go_fish'}
     <GoFishPage 
         {ws} 
-        {uuid}
+        {sessionID}
+        {username}
+        {lobbyData}
+        {playing}
+        {canAsk}
+        {canDraw}
+        {hand}
+        {currentTurnName}
+        {books}
+        {gameDisplayText}
+    />
+{:else if page === 'texas_holdem'}
+    <TexasHoldemPage
+        {ws} 
+        {sessionID}
         {username}
         {lobbyData}
         {playing}
         {hand}
+        {money}
+        {smallBlind}
+        {bigBlind}
+        {pot}
         {currentTurnName}
-        {topCard}
-        {books}
     />
 {:else if page === 'game_end'}
     <GameEndPage

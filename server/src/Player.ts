@@ -1,19 +1,29 @@
 import { WebSocket } from 'ws';
 
 class Player {
-    uuid: string;
+    sessionID: string;
     username: string;
     hand: string[];
+    money: number;
     ws: WebSocket;
     ready: boolean;
     playing: boolean;
-    constructor(ws: WebSocket, username: string, uuid: string) {
+    smallBlind: boolean;
+    bigBlind: boolean;
+    lobby: number | null;
+    uuid: string;
+    constructor(ws: WebSocket, username: string, uuid: string, sessionID: string) {
+        this.sessionID = sessionID;
         this.uuid = uuid;
         this.username = username;
         this.hand = [];
+        this.money = 0;
         this.ws = ws;
         this.ready = false;
         this.playing = false;
+        this.smallBlind = false;
+        this.bigBlind = false;
+        this.lobby = null;
     }
 
     removeCard(card: string) {

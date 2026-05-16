@@ -21,6 +21,12 @@
         }));
     }
 
+    const guest = () => {
+        ws.send(JSON.stringify({
+            type: 'guest'
+        }));
+    }
+
 </script>
 
 <div class="loginContainer">
@@ -50,7 +56,11 @@
     >
         Register
     </button>
-    <button>Play as guest</button>
+        <button
+            on:click={guest}
+        >
+            Play as guest
+        </button>
 </div>
 
 <style>
